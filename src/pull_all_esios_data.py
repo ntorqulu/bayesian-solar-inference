@@ -50,13 +50,19 @@ END = "2026-04-30"
 #         Returns ~17 provincial series that must be SUMMED to get total demand.
 #         DO NOT use 1293 (Demanda prevista D-1): broken unit, ~8x inflated.
 # 10288 = Wind generation peninsular (MW) single geo_id=8741 series
-# 10289 = Solar PV generation peninsular (MW) single geo_id=8741 series
+# 10358 = Solar PV generation peninsular (MW), geo_id=8741 — VERIFIED WORKING
+#         Available from Jan 2020 onward. Pre-2020 rows = NaN (acceptable for model).
+#         Jul 2022 avg ~10,155 MW | Jul 2024 avg ~12,949 MW — physically correct.
+#         DO NOT USE: 10289/77 (reversed/decreasing), 1159 (403 restricted).
 
 INDICATORS = {
     "price":    600,    # Prices (hourly, €/MWh)
     "demand":   469,    # Real peninsular demand by province (hourly, MW) NOT 1293
     "wind_gen": 10288,  # Wind generation (hourly, MW)
-    "solar_pv": 10289,  # Solar PV generation (hourly, MW)
+    # 10358 = verified working, geo_id=8741, ~10-13k MW avg Jul 2022/2024 ✅
+    # Available from Jan 2020 onward — pre-2020 rows will be NaN in output.
+    # Do NOT use: 10289/77 (reversed/decreasing), 1159 (403 restricted).
+    "solar_pv": 10358,
 }
 
 # Ensure output directory exists
@@ -276,10 +282,7 @@ def process_generation(raw_df, value_col, date_col="datetime"):
     # Rename it so the merge key matches daily["date"].
     peak_hours = (
         hourly.groupby("day")
-        .apply(
-            lambda g: g.loc[g[value_col].idxmax(), "date"].tz_convert(None).hour,
-            include_groups=False,
-        )
+        .apply(lambda g: g.loc[g[value_col].idxmax(), "date"].tz_localize(None).hour)
         .reset_index()
         .rename(columns={"day": "date", 0: f"{value_col}_peak_hour"})
     )
@@ -324,7 +327,24 @@ wind_daily = process_generation(dfs["wind_gen"], "wind_gen")
 print(f"Wind generation: {len(wind_daily)} days")
 
 solar_daily = process_generation(dfs["solar_pv"], "solar_pv")
-print(f"Solar PV:        {len(solar_daily)} days")
+
+# Indicator 10358 only covers Jan 2020 onward — pre-2020 rows will be NaN.
+# Validate using 2022 and 2024 only (both should have data and 2024 > 2022).
+solar_2022_mw = solar_daily[solar_daily["date"].dt.year == 2022]["solar_pv_mean_mw"].mean()
+solar_2024_mw = solar_daily[solar_daily["date"].dt.year == 2024]["solar_pv_mean_mw"].mean()
+solar_nan_pre2020 = solar_daily[solar_daily["date"].dt.year < 2020]["solar_pv_mwh_day"].isna().mean()
+solar_ok = (
+    2000 < solar_2022_mw < 20000
+    and 3000 < solar_2024_mw < 25000
+    and solar_2024_mw > solar_2022_mw
+)
+print(
+    f"Solar PV:        {len(solar_daily)} days  "
+    f"2022_avg={solar_2022_mw:,.0f} MW  "
+    f"2024_avg={solar_2024_mw:,.0f} MW  "
+    f"pre-2020_NaN={solar_nan_pre2020:.0%}  "
+    f"{'✅ OK' if solar_ok else '❌ CHECK indicator'}"
+)
 
 # Merge all generation
 result = demand_daily.copy()
