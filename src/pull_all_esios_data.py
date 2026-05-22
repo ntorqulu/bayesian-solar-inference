@@ -276,7 +276,10 @@ def process_generation(raw_df, value_col, date_col="datetime"):
     # Rename it so the merge key matches daily["date"].
     peak_hours = (
         hourly.groupby("day")
-        .apply(lambda g: g.loc[g[value_col].idxmax(), "date"].tz_localize(None).hour)
+        .apply(
+            lambda g: g.loc[g[value_col].idxmax(), "date"].tz_convert(None).hour,
+            include_groups=False,
+        )
         .reset_index()
         .rename(columns={"day": "date", 0: f"{value_col}_peak_hour"})
     )

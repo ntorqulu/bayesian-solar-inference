@@ -211,6 +211,7 @@ else:
         raw = pd.concat(all_dfs, ignore_index=True)
         raw["date"] = pd.to_datetime(raw["datetime"], utc=True)\
                         .dt.tz_convert("Europe/Madrid")\
+                        .dt.tz_convert(None)\
                         .dt.to_period("M")\
                         .dt.to_timestamp()
         raw["value"] = pd.to_numeric(raw["value"], errors="coerce")
