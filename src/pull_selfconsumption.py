@@ -215,7 +215,7 @@ else:
                         .dt.to_timestamp()
         raw["value"] = pd.to_numeric(raw["value"], errors="coerce")
 
-        out_path = OUT_DIR / "esios_selfconsumption_raw.csv"
+        out_path = OUT_DIR / "esios_selfconsumption.csv"
         raw.to_csv(out_path, index=False)
         print(f"\n✓ Raw data saved → {out_path}")
         print(f"  {len(raw)} rows across {raw['indicator_id'].nunique()} indicators")
