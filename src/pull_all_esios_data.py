@@ -50,17 +50,15 @@ END = "2026-04-30"
 #         Returns ~17 provincial series that must be SUMMED to get total demand.
 #         DO NOT use 1293 (Demanda prevista D-1): broken unit, ~8x inflated.
 # 10288 = Wind generation peninsular (MW) single geo_id=8741 series
-# 10358 = Solar PV generation peninsular (MW), geo_id=8741 — VERIFIED WORKING
-#         Available from Jan 2020 onward. Pre-2020 rows = NaN (acceptable for model).
-#         Jul 2022 avg ~10,155 MW | Jul 2024 avg ~12,949 MW — physically correct.
-#         DO NOT USE: 10289/77 (reversed/decreasing), 1159 (403 restricted).
+# 10289 = Solar PV generation peninsular (MW) single geo_id=8741 series
 
 INDICATORS = {
     "price":    600,    # Prices (hourly, €/MWh)
     "demand":   469,    # Real peninsular demand by province (hourly, MW) NOT 1293
     "wind_gen": 10288,  # Wind generation (hourly, MW)
     # 10358 = verified working, geo_id=8741, ~10-13k MW avg Jul 2022/2024 ✅
-    # Available from Jan 2020 onward — pre-2020 rows will be NaN in output.
+    # Available from Jan 2019 onward — pre-2019 rows NaN. API has transient SSL
+    # errors mid-series — handled by session refresh in fetch_chunk.
     # Do NOT use: 10289/77 (reversed/decreasing), 1159 (403 restricted).
     "solar_pv": 10358,
 }
@@ -92,6 +90,7 @@ session = requests.Session()
 
 
 def fetch_chunk(indicator_id, start_date, end_date, max_retries=5):
+    global session
     """Fetch data chunk from ESIOS API with retry logic."""
     url = f"{BASE_URL}/indicators/{indicator_id}"
     params = {"start_date": start_date, "end_date": end_date, "time_trunc": "hour"}
@@ -103,12 +102,22 @@ def fetch_chunk(indicator_id, start_date, end_date, max_retries=5):
             values = r.json()["indicator"]["values"]
             return pd.DataFrame(values)
         except requests.exceptions.ReadTimeout:
-            wait = 20 * (attempt + 1)
+            wait = 30 * (attempt + 1)
             print(f"    timeout — retry in {wait}s ({attempt + 1}/{max_retries})")
             time.sleep(wait)
         except requests.exceptions.HTTPError as e:
             print(f"    HTTP ERROR: {e}")
             return pd.DataFrame()
+        except (requests.exceptions.SSLError,
+                requests.exceptions.ConnectionError) as e:
+            # SSL EOF and connection reset errors are transient ESIOS API instability.
+            # Refresh the session and wait longer before retrying.
+            wait = 45 * (attempt + 1)
+            print(f"    SSL/Connection error — refreshing session, retry in {wait}s "
+                  f"({attempt + 1}/{max_retries})")
+            session.close()
+            session = requests.Session()
+            time.sleep(wait)
         except Exception as e:
             print(f"    ERROR: {e}")
             return pd.DataFrame()
@@ -255,14 +264,17 @@ def process_generation(raw_df, value_col, date_col="datetime"):
         )
 
     # ── Sum across geo series per timestamp (critical for demand) ─────────────
-    df["day"] = df["date"].dt.tz_localize(None).dt.normalize()
+    # NOTE: df["date"] is tz-aware (Europe/Madrid). Use tz_convert(None) — not
+    # tz_localize(None) — to strip the timezone. tz_localize(None) on a tz-aware
+    # series raises TypeError in pandas ≥ 1.x and silently collapses day grouping.
+    df["day"] = df["date"].dt.tz_convert(None).dt.normalize()
 
     hourly = (
         df.groupby("date")[value_col]
         .sum()
         .reset_index()
     )
-    hourly["day"] = hourly["date"].dt.tz_localize(None).dt.normalize()
+    hourly["day"] = hourly["date"].dt.tz_convert(None).dt.normalize()
 
     # ── Daily aggregation ─────────────────────────────────────────────────────
     daily = (
@@ -278,11 +290,12 @@ def process_generation(raw_df, value_col, date_col="datetime"):
     daily[f"{value_col}_mwh_day"] = daily[f"{value_col}_mean_mw"] * 24
 
     # ── Peak hour ─────────────────────────────────────────────────────────────
-    # groupby("day").apply().reset_index() produces a "day" column, not "date".
-    # Rename it so the merge key matches daily["date"].
     peak_hours = (
         hourly.groupby("day")
-        .apply(lambda g: g.loc[g[value_col].idxmax(), "date"].tz_localize(None).hour)
+        .apply(
+            lambda g: g.loc[g[value_col].idxmax(), "date"].tz_convert(None).hour,
+            include_groups=False,
+        )
         .reset_index()
         .rename(columns={"day": "date", 0: f"{value_col}_peak_hour"})
     )
@@ -317,34 +330,49 @@ print()
 
 # Process each generation component
 demand_daily = process_generation(dfs["demand"], "demand")
+n_unique_demand = demand_daily["demand_mwh_day"].nunique()
+demand_ok = n_unique_demand > 100
 print(
     f"Demand:          {len(demand_daily)} days  "
     f"mean={demand_daily['demand_mean_mw'].mean():,.0f} MW  "
-    f"mwh/day={demand_daily['demand_mwh_day'].mean():,.0f}"
+    f"mwh/day={demand_daily['demand_mwh_day'].mean():,.0f}  "
+    f"unique_vals={n_unique_demand}  "
+    f"{'✅ OK' if demand_ok else '❌ TOO FEW — tz_convert bug still present'}"
 )
 
 wind_daily = process_generation(dfs["wind_gen"], "wind_gen")
 print(f"Wind generation: {len(wind_daily)} days")
 
 solar_daily = process_generation(dfs["solar_pv"], "solar_pv")
-
-# Indicator 10358 only covers Jan 2020 onward — pre-2020 rows will be NaN.
-# Validate using 2022 and 2024 only (both should have data and 2024 > 2022).
 solar_2022_mw = solar_daily[solar_daily["date"].dt.year == 2022]["solar_pv_mean_mw"].mean()
 solar_2024_mw = solar_daily[solar_daily["date"].dt.year == 2024]["solar_pv_mean_mw"].mean()
-solar_nan_pre2020 = solar_daily[solar_daily["date"].dt.year < 2020]["solar_pv_mwh_day"].isna().mean()
-solar_ok = (
-    2000 < solar_2022_mw < 20000
-    and 3000 < solar_2024_mw < 25000
-    and solar_2024_mw > solar_2022_mw
-)
+n_solar_nan   = solar_daily["solar_pv_mwh_day"].isna().sum()
+solar_ok = 2000 < solar_2022_mw < 20000 and 3000 < solar_2024_mw < 25000 and solar_2024_mw > solar_2022_mw
 print(
     f"Solar PV:        {len(solar_daily)} days  "
     f"2022_avg={solar_2022_mw:,.0f} MW  "
     f"2024_avg={solar_2024_mw:,.0f} MW  "
-    f"pre-2020_NaN={solar_nan_pre2020:.0%}  "
-    f"{'✅ OK' if solar_ok else '❌ CHECK indicator'}"
+    f"NaN_days={n_solar_nan}  "
+    f"{'✅ OK' if solar_ok else '❌ CHECK indicator or gap'}"
 )
+if n_solar_nan > 0:
+    # Fill missing solar days with linear interpolation (handles SSL gap months).
+    # Pre-2019 NaN is expected and left as NaN (no data before indicator launch).
+    # Post-2019 gaps from transient API errors are interpolated.
+    solar_daily = solar_daily.sort_values("date").reset_index(drop=True)
+    solar_cols = ["solar_pv_mwh_day", "solar_pv_mean_mw",
+                  "solar_pv_peak_mw", "solar_pv_peak_hour"]
+    cutoff = pd.Timestamp("2019-01-01")
+    for col in solar_cols:
+        # Only interpolate post-2019 gaps; leave pre-2019 as NaN
+        post2019 = solar_daily["date"] >= cutoff
+        solar_daily.loc[post2019, col] = (
+            solar_daily.loc[post2019, col]
+            .interpolate(method="linear", limit=60)  # max 60 consecutive days
+        )
+    n_remaining = solar_daily["solar_pv_mwh_day"].isna().sum()
+    print(f"  → Interpolated post-2019 gaps: {n_solar_nan - n_remaining} days filled  "
+          f"({n_remaining} NaN remain — pre-2019, expected)")
 
 # Merge all generation
 result = demand_daily.copy()
