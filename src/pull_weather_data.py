@@ -84,13 +84,13 @@ def fetch_chunk(date_from: str, date_to: str) -> list:
 
     estado = meta.get("estado")
     if estado != 200:
-        print(f"  ⚠ API warning for {date_from}→{date_to}: "
+        print(f"  API warning for {date_from}→{date_to}: "
               f"estado={estado} — {meta.get('descripcion', '')}")
         return []
 
     data_url = meta.get("datos")
     if not data_url:
-        print(f"  ⚠ No data URL returned for {date_from}→{date_to}")
+        print(f"  No data URL returned for {date_from}→{date_to}")
         return []
 
     # Step 2 — fetch actual data
@@ -205,7 +205,7 @@ def main():
     full_range = pd.date_range(START, END)
     missing_dates = full_range.difference(df["date"])
     if len(missing_dates) > 0:
-        print(f"\n  ⚠ {len(missing_dates)} dates missing from output:")
+        print(f"\n  {len(missing_dates)} dates missing from output:")
         gaps = []
         start_gap = missing_dates[0]
         prev = missing_dates[0]

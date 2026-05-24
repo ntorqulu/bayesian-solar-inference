@@ -54,7 +54,7 @@ daily = daily[["date","wind_mwh_day","wind_mean_mw","wind_peak_mw","wind_peak_ho
 mean_mw = daily["wind_mean_mw"].mean()
 ok = 2_000 < mean_mw < 8_000
 print(f"\nWind daily: {len(daily)} days  mean={mean_mw:,.0f} MW  "
-      f"{'✅ OK' if ok else '❌ CHECK'}")
+      f"{'OK' if ok else 'error CHECK'}")
 
 daily.to_csv("data/raw/esios_wind.csv", index=False)
 print("✓ Saved → data/raw/esios_wind.csv")

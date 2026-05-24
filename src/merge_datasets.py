@@ -93,23 +93,23 @@ print("\nValidating individual sources...")
 # Demand: all years should be 18k-35k MW
 demand_by_yr = demand.groupby(demand.date.dt.year)["demand_mean_mw"].mean()
 demand_ok = all(18000 < v < 35000 for v in demand_by_yr.values)
-print(f"  Demand  all-years mean in 18k-35k: {'✅' if demand_ok else '❌'}")
+print(f"  Demand  all-years mean in 18k-35k: {'ok' if demand_ok else 'error'}")
 if not demand_ok:
     for yr, v in demand_by_yr.items():
         if not (18000 < v < 35000):
-            print(f"    ❌ {yr}: {v:,.0f} MW — check fetch_demand.py")
+            print(f"    error {yr}: {v:,.0f} MW — check fetch_demand.py")
 
 # Solar: growing trend
 s2022 = solar.groupby(solar.date.dt.year)["solar_mean_mw"].mean().get(2022, 0)
 s2024 = solar.groupby(solar.date.dt.year)["solar_mean_mw"].mean().get(2024, 0)
 solar_ok = s2024 > s2022 > 0
 print(f"  Solar   growing 2022→2024 ({s2022:,.0f}→{s2024:,.0f} MW): "
-      f"{'✅' if solar_ok else '❌ check fetch_solar.py (use indicator 10358)'}")
+      f"{'ok' if solar_ok else 'error check fetch_solar.py (use indicator 10358)'}")
 
 # Wind: plausible mean
 wind_mean = wind["wind_mean_mw"].mean()
 wind_ok = 2000 < wind_mean < 6000
-print(f"  Wind    mean {wind_mean:,.0f} MW (expected 2k-6k): {'✅' if wind_ok else '❌'}")
+print(f"  Wind    mean {wind_mean:,.0f} MW (expected 2k-6k): {'ok' if wind_ok else 'error'}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -246,7 +246,7 @@ if "selfcons_pv_capacity_mw" in result.columns and "sunshine_hours" in result.co
             share = result.loc[mask_2025, "selfcons_share_of_demand"].mean()
             ok = 0.02 < share < 0.10
             print(f"\n  [VALIDATION] 2025 selfcons_share_of_demand: {share*100:.2f}%  "
-                  f"{'✅ consistent with REE ~4%' if ok else '⚠ unexpected'}")
+                  f"{'ok consistent with REE ~4%' if ok else 'unexpected'}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -266,7 +266,7 @@ if len(miss):
     for col, n in miss.items():
         print(f"    {col:<40} {n:>5} ({n/len(result)*100:.1f}%)")
 else:
-    print("    none ✅")
+    print("    none ok")
 
 print(f"\n  Regime distribution:")
 print(result["regime"].value_counts().to_string())
@@ -277,12 +277,12 @@ dm = result["demand_mean_mw"].mean()
 wm = result["wind_gen_mean_mw"].mean()
 sm = result["solar_pv_mean_mw"].mean()
 rp = result["renewables_penetration"].mean() * 100 if "renewables_penetration" in result.columns else 0
-print(f"    demand_mean_mw    : {dm:>8,.0f} MW  {'✅' if 22000<dm<32000 else '❌'}")
-print(f"    wind_gen_mean_mw  : {wm:>8,.0f} MW  {'✅' if 2000<wm<6000 else '❌'}")
-print(f"    solar_pv_mean_mw  : {sm:>8,.0f} MW  {'✅ (post-2019 only)' if sm>0 else '❌'}")
-print(f"    renewables_pen    : {rp:>8.1f}%   {'✅' if 8<rp<50 else '❌'}")
+print(f"    demand_mean_mw    : {dm:>8,.0f} MW  {'ok' if 22000<dm<32000 else 'error'}")
+print(f"    wind_gen_mean_mw  : {wm:>8,.0f} MW  {'ok' if 2000<wm<6000 else 'error'}")
+print(f"    solar_pv_mean_mw  : {sm:>8,.0f} MW  {'ok (post-2019 only)' if sm>0 else 'error'}")
+print(f"    renewables_pen    : {rp:>8.1f}%   {'ok' if 8<rp<50 else 'error'}")
 print(f"    selfcons_max_mw   : {result['selfcons_pv_capacity_mw'].max():>8,.0f} MW  "
-      f"{'✅' if result['selfcons_pv_capacity_mw'].max()>5000 else '❌'}")
+      f"{'ok' if result['selfcons_pv_capacity_mw'].max()>5000 else 'error'}")
 
 result.to_csv("data/merged/merged_dataset.csv", index=False)
 print(f"\n✓ Saved → data/merged/merged_dataset.csv")
@@ -301,5 +301,5 @@ if mask_bk.any():
 print(f"\nSelf-consumption PV capacity — national total (Dec each year):")
 dec = result[result.date.dt.month == 12].groupby(result.date.dt.year)["selfcons_pv_capacity_mw"].last()
 for yr, cap in dec.items():
-    bar = "█" * int(cap / 500)
+    bar = "*" * int(cap / 500)
     print(f"  {yr}: {cap:>8,.0f} MW  {bar}")

@@ -49,8 +49,8 @@ print(f"\nPrices: {len(daily)} days  "
       f"[{daily.date.min().date()} → {daily.date.max().date()}]")
 print(f"  Spain  mean={daily.price_spain.mean():.1f} €/MWh  "
       f"min={daily.price_spain.min():.1f}  max={daily.price_spain.max():.1f}")
-print(f"  Missing days: {daily.price_spain.isna().sum()}  ✅" 
-      if daily.price_spain.isna().sum() == 0 else "  ⚠ missing days exist")
+print(f"  Missing days: {daily.price_spain.isna().sum()}  ok" 
+      if daily.price_spain.isna().sum() == 0 else "  missing days exist")
 
 daily.to_csv("data/raw/esios_prices.csv", index=False)
-print("✓ Saved → data/raw/esios_prices.csv")
+print("Saved → data/raw/esios_prices.csv")

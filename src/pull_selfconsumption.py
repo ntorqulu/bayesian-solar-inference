@@ -160,7 +160,7 @@ print("=" * 60)
 # the script prints guidance to identify the right IDs manually.
 
 if not confirmed:
-    print("\n⚠ No autoconsumo indicators found with data in 2025.")
+    print("\nNo autoconsumo indicators found with data in 2025.")
     print("  This likely means the data was published under different indicator IDs.")
     print("  To find them manually:")
     print("  1. Go to https://www.esios.ree.es/es/analisis")
@@ -204,7 +204,7 @@ else:
                 print(f"  → {len(df)} monthly records  "
                       f"({df['datetime'].min()[:7]} – {df['datetime'].max()[:7]})")
         except Exception as e:
-            print(f"  ✗ Error: {e}")
+            print(f"  Error: {e}")
         time.sleep(1)
 
     if all_dfs:
@@ -228,4 +228,4 @@ else:
                     .sum().unstack("date")
         print(sample.to_string())
     else:
-        print("\n⚠ No data pulled. Check indicator IDs.")
+        print("\nNo data pulled. Check indicator IDs.")

@@ -15,7 +15,7 @@ NOTE: Do NOT use indicator 10289 (reversed/decreasing trend from 2023).
 import pandas as pd
 from fetch_shared import download_indicator, clean_hourly
 
-INDICATOR_ID = 10358    # ← verified: geo_id=8741, Jan 2019+, growing trend ✅
+INDICATOR_ID = 10358    # ← verified: geo_id=8741, Jan 2019+, growing trend ok
 
 # ── DOWNLOAD ──────────────────────────────────────────────────────────────────
 raw = download_indicator(INDICATOR_ID, "solar_pv")
@@ -33,7 +33,7 @@ print(f"  Rows with data: {len(df):,}  "
 solar_2022 = df[df["date"].dt.year == 2022]["solar_pv"].mean()
 solar_2024 = df[df["date"].dt.year == 2024]["solar_pv"].mean()
 print(f"  2022 mean: {solar_2022:,.0f} MW  |  2024 mean: {solar_2024:,.0f} MW  "
-      f"{'✅ growing' if solar_2024 > solar_2022 > 0 else '❌ NOT growing — check indicator'}")
+      f"{'ok growing' if solar_2024 > solar_2022 > 0 else 'error NOT growing — check indicator'}")
 
 # ── DAILY AGGREGATION ─────────────────────────────────────────────────────────
 df["_day"] = df["date"].dt.tz_convert(None).dt.normalize()
@@ -69,7 +69,7 @@ n_nan    = daily["solar_mwh_day"].isna().sum()
 n_data   = daily["solar_mwh_day"].notna().sum()
 ok_grow  = solar_2024 > solar_2022 > 0
 print(f"\nSolar daily: {n_data} days with data, {n_nan} NaN (pre-2019, expected)  "
-      f"{'✅ OK' if ok_grow else '❌ CHECK indicator'}")
+      f"{'ok OK' if ok_grow else 'error CHECK indicator'}")
 print(f"  Peak hour distribution (should cluster 12–14h):")
 print(f"  {daily['solar_peak_hour'].value_counts().sort_index().to_dict()}")
 

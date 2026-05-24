@@ -58,8 +58,8 @@ print(f"  Post-boundary mean after conversion: "
 pre_mean  = df_clean[df_clean["date"] <  BOUNDARY]["demand"].mean()
 post_mean = df_clean[df_clean["date"] >= BOUNDARY]["demand"].mean()
 ok = 18_000 < pre_mean < 35_000 and 18_000 < post_mean < 35_000
-print(f"  Pre-boundary mean:  {pre_mean:,.0f} MW  {'✅' if 18000<pre_mean<35000 else '❌'}")
-print(f"  Post-boundary mean: {post_mean:,.0f} MW  {'✅' if 18000<post_mean<35000 else '❌'}")
+print(f"  Pre-boundary mean:  {pre_mean:,.0f} MW  {'ok' if 18000<pre_mean<35000 else 'error'}")
+print(f"  Post-boundary mean: {post_mean:,.0f} MW  {'ok' if 18000<post_mean<35000 else 'error'}")
 
 # ── DAILY AGGREGATION ─────────────────────────────────────────────────────────
 df_clean["_day"] = df_clean["date"].dt.tz_convert(None).dt.normalize()
@@ -94,12 +94,12 @@ ok_uniq  = n_unique > 100
 print(f"\nDemand daily: {len(daily)} days  "
       f"[{daily.date.min().date()} → {daily.date.max().date()}]")
 print(f"  mean={mean_mw:,.0f} MW  unique_vals={n_unique}  "
-      f"{'✅ OK' if ok_mean and ok_uniq else '❌ CHECK'}")
+      f"{'OK' if ok_mean and ok_uniq else 'error CHECK'}")
 print(f"\nBy year:")
 daily["yr"] = daily["date"].dt.year
 for yr, grp in daily.groupby("yr"):
     m = grp["demand_mean_mw"].mean()
-    flag = "✅" if 18000 < m < 35000 else "❌"
+    flag = "ok" if 18000 < m < 35000 else "error"
     print(f"  {yr}: {m:>8,.0f} MW  {flag}")
 daily = daily.drop(columns=["yr"])
 
