@@ -1,0 +1,20 @@
+[
+    {
+        "name": "v1_baseline",
+        "latent_solar": {"dist": "HalfNormal", "sigma": 0.5},
+        "likelihood": {"dist": "StudentT", "sigma_err": 0.3},
+        "baseline_temp": {"dist": "Normal", "sigma": 0.5}
+    },
+    {
+        "name": "v2_strict_solar",
+        "latent_solar": {"dist": "Exponential", "lam": 2.0},
+        "likelihood": {"dist": "StudentT", "sigma_err": 0.3},
+        "baseline_temp": {"dist": "Normal", "sigma": 0.5}
+    },
+    {
+        "name": "v3_normal_likelihood",
+        "latent_solar": {"dist": "HalfNormal", "sigma": 0.5},
+        "likelihood": {"dist": "Normal", "sigma_err": 0.3},
+        "baseline_temp": {"dist": "Normal", "sigma": 0.5}
+    }
+]
