@@ -1,56 +1,66 @@
 [
     {
         "name": "v1_baseline",
-        "latent_solar": {"dist": "HalfNormal", "sigma": 0.5},
-        "likelihood": {"dist": "StudentT", "sigma_err": 0.3},
-        "baseline_temp": {"dist": "Normal", "sigma": 0.5}
+        "description": "Reference model: HalfNormal(0.3) solar prior, StudentT likelihood, polynomial temperature. Anchor for all comparisons.",
+        "baseline_type": "polynomial",
+        "latent_solar":  {"dist": "HalfNormal", "sigma": 0.5},
+        "likelihood":    {"dist": "StudentT",   "sigma_err": 0.3}
     },
     {
         "name": "v2_strict_solar",
-        "latent_solar": {"dist": "Exponential", "lam": 2.0},
-        "likelihood": {"dist": "StudentT", "sigma_err": 0.3},
-        "baseline_temp": {"dist": "Normal", "sigma": 0.5}
+        "description": "Sceptical solar prior: Exponential(lam=2) places most mass near zero. Tests whether data overcomes a strongly regularising prior on eta.",
+        "baseline_type": "polynomial",
+        "latent_solar":  {"dist": "Exponential", "lam": 2.0},
+        "likelihood":    {"dist": "StudentT",    "sigma_err": 0.3}
     },
     {
         "name": "v3_normal_likelihood",
-        "latent_solar": {"dist": "HalfNormal", "sigma": 0.5},
-        "likelihood": {"dist": "Normal", "sigma_err": 0.3},
-        "baseline_temp": {"dist": "Normal", "sigma": 0.5}
+        "description": "Normal likelihood: removes heavy tails. Quantifies the robustness cost of not down-weighting blackout and macroeconomic shock days.",
+        "baseline_type": "polynomial",
+        "latent_solar":  {"dist": "HalfNormal", "sigma": 0.5},
+        "likelihood":    {"dist": "Normal",      "sigma_err": 0.3}
     },
     {
         "name": "v4_lognormal_solar",
-        "latent_solar": {"dist": "LogNormal", "mu": -1.0, "sigma": 0.8},
-        "likelihood": {"dist": "StudentT", "sigma_err": 0.3},
-        "baseline_temp": {"dist": "Normal", "sigma": 0.5}
+        "description": "LogNormal(mu=-1, sigma=0.8) solar prior: centred near REE-implied eta ~0.37. Tests a log-symmetric, physically anchored prior.",
+        "baseline_type": "polynomial",
+        "latent_solar":  {"dist": "LogNormal", "mu": -1.0, "sigma": 0.8},
+        "likelihood":    {"dist": "StudentT",  "sigma_err": 0.3}
     },
     {
         "name": "v5_heavy_tail_solar",
-        "latent_solar": {"dist": "HalfCauchy", "beta": 0.5},
-        "likelihood": {"dist": "StudentT", "sigma_err": 0.3},
-        "baseline_temp": {"dist": "Normal", "sigma": 0.5}
+        "description": "HalfCauchy(0.5) solar prior: very heavy tails. Tests whether the data constrains eta from above even under an essentially flat prior.",
+        "baseline_type": "polynomial",
+        "latent_solar":  {"dist": "HalfCauchy", "beta": 0.5},
+        "likelihood":    {"dist": "StudentT",   "sigma_err": 0.3}
     },
     {
-        "name": "v6_wide_uninformed",
-        "latent_solar": {"dist": "HalfNormal", "sigma": 5.0},
-        "likelihood": {"dist": "StudentT", "sigma_err": 2.0},
-        "baseline_temp": {"dist": "Normal", "sigma": 5.0}
+        "name": "v6_wide_solar_only",
+        "description": "Wide HalfNormal(5) on solar prior only, all other priors unchanged. Isolates the effect of solar prior width from other hyperparameter choices.",
+        "baseline_type": "polynomial",
+        "latent_solar":  {"dist": "HalfNormal", "sigma": 5.0},
+        "likelihood":    {"dist": "StudentT",   "sigma_err": 0.3}
     },
     {
-        "name": "v7_piecewise_academic",
+        "name": "v7_piecewise",
+        "description": "Piecewise HDD/CDD baseline. Replaces the polynomial with separate Heating Degree Day and Cooling Degree Day terms (thresholds 18C/22C). Follows Engle et al. (1986) and Bessec & Fouquau (2008), who showed piecewise temperature outperforms polynomials for European electricity demand. HalfNormal priors enforce both coefficients are positive (demand rises away from the comfort band).",
         "baseline_type": "piecewise",
-        "latent_solar": {"dist": "HalfNormal", "sigma": 0.5},
-        "likelihood": {"dist": "StudentT", "sigma_err": 0.3}
+        "latent_solar":  {"dist": "HalfNormal", "sigma": 0.5},
+        "likelihood":    {"dist": "StudentT",   "sigma_err": 0.3}
     },
     {
-        "name": "v8_autoregressive_academic",
+        "name": "v8_autoregressive",
+        "description": "Autoregressive baseline: adds 7-day lagged demand as a predictor (rho_lag ~ N(0.8, 0.2)). Follows Elamin & Fukushima (2018) short-term load forecasting literature. NOTE: excluded from the main LOO leaderboard because lag-7 demand absorbs autocorrelation rather than physical drivers, inflating ELPD by ~2300 points spuriously. Run separately to quantify the autocorrelation effect.",
         "baseline_type": "autoregressive",
-        "latent_solar": {"dist": "HalfNormal", "sigma": 0.5},
-        "likelihood": {"dist": "StudentT", "sigma_err": 0.3}
+        "latent_solar":  {"dist": "HalfNormal", "sigma": 0.5},
+        "likelihood":    {"dist": "StudentT",   "sigma_err": 0.3},
+        "exclude_from_loo": true
     },
     {
-        "name": "v9_thi_academic",
+        "name": "v9_thi",
+        "description": "Temperature-Humidity Index (THI) baseline. Replaces raw temperature with THI = T - 0.55*(1 - RH/100)*(T - 14.5), which adjusts for perceived heat stress. Follows Valor et al. (2001) and Mirasgedis et al. (2007), who showed THI outperforms raw temperature for Spanish and Mediterranean electricity demand modelling.",
         "baseline_type": "thi",
-        "latent_solar": {"dist": "HalfNormal", "sigma": 0.5},
-        "likelihood": {"dist": "StudentT", "sigma_err": 0.3}
+        "latent_solar":  {"dist": "HalfNormal", "sigma": 0.5},
+        "likelihood":    {"dist": "StudentT",   "sigma_err": 0.3}
     }
 ]
