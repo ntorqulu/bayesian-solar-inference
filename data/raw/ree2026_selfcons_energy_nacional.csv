@@ -1,0 +1,16 @@
+﻿Título: ; Evolución de la energía autoconsumida por combustible
+Sistema Eléctrico: ; nacional
+Magnitud: ; GWh
+
+
+"Category","Hidráulica","Eólica","Solar Fotovoltaica","Solar Térmica","Cogeneración","Otras renovables","Residuos rvbles","Residuos no rvbles"
+"2022",10.44765662,17.90631517,1642.260822,0.10545837,4823.82182,1313.664969,138.0571045,790.5442215
+"2023",13.5454553,21.37395965,4470.393288,0.76304055,4581.781075,1638.533206,143.9002435,709.3854655
+"2024",20.71906118,24.98570921,7903.278924,2.22990803,4463.978597,1653.011569,165.7777455,642.4365695
+"2025",20.12571481,25.67065156,10734.12571,2.09809282,3835.88718,1447.132795,160.394184,590.121613
+,
+Status, Información elaborada con datos provisionales a enero del 2026
+,
+Export date, 05/29/2026 - 13:07:32
+,
+Source, www.ree.es
